@@ -4,40 +4,32 @@ A package that provides (limited) file system monitoring using the [DispatchSour
 
 ## Features
 
-Listen to file system events for **directories** on iOS. This plugin is meant to bridge a gap that currently exists in the standard library, where watching file system changes on iOS is not currently supported (see [flutter issue 99456](https://github.com/flutter/flutter/issues/99456))
+Listen to file system events iOS. This plugin is meant to bridge a gap that currently exists in the standard library, where watching file system changes on iOS is not currently supported (see [flutter issue 99456](https://github.com/flutter/flutter/issues/99456))
 
 ## Usage
 
-The plugin must be initialized before events will fire:
+Create a watcher for the desired path
 
 ```dart
-final watcher = DispatchSourceWatcher();
-watcher.initialize();
+final watcher = DispatchSourceWatcher(path: '/tmp/dir1');
 ```
 
-To listen to changes:
+The watcher provides a (broadcast) stream that can be listened to:
 
 ```dart
-void callback1(event) {
+final subscription = watcher.stream.watch((event) {
   print("receive event on path ${event.path}");
-}
-watcher.watch("/tmp/dir1", callback1);
+});
 ```
 
-To stop listening to changes:
+To stop listening to changes cancel the subscription:
 
 ```dart
-watcher.cancelWatchCallback("/tmp/dir1", callback1);
-```
-
-One should dispose of the watcher when it is no longer needed:
-
-```dart
-watcher.dispose();
+subscription.cancel();
 ```
 
 ## Limitations
 
-The data provided by the notifications in this package is not very granular. In particular, the callback triggered when the directory hierarchy is modified does not contain the path of the file that was modified (the path in the event is the path of the directory being watched).
+The data provided by the notifications in this package is not very granular. In particular, when watching a directory, the events triggered when the directory hierarchy is modified do not contain the path of the file that was modified within that hierarchy - the path in the event is the path of the directory being watched.
 
 Requires iOS 10.0+

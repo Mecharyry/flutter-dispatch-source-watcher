@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:async';
+import 'package:flutter/material.dart';
+
 
 import 'package:dispatch_source_watcher/dispatch_source_watcher.dart';
 
@@ -15,28 +17,28 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final watcher = DispatchSourceWatcher();
+  final DispatchSourceWatcher watcher = DispatchSourceWatcher(path:'/tmp/dir1');
+  StreamSubscription? watcherSubscription;
 
   @override
   void initState() {
     super.initState();
-    watcher.initialize();
-    watcher.watch("/tmp/dir1", onFsEvent);
     Directory("/tmp/dir1").createSync();
+    watcherSubscription = watcher.stream.listen((event) => onFsEvent(event));
   }
 
   @override
   void dispose() {
-    watcher.cancelWatchCallback("/tmp/dir1", onFsEvent);
-    watcher.dispose();
+    watcherSubscription?.cancel();
     super.dispose();
   }
 
   void onFsEvent(DispatchSourceEvent event) {
     print("DBG flutter app got event: ${event.path}, ${event.eventNames}");
   }
+
   void writeFile() {
-    final test2 = File('/tmp/dir1/test2');
+    final test2 = File('/tmp/dir1');
     if (test2.existsSync()) {
       test2.delete();
     }

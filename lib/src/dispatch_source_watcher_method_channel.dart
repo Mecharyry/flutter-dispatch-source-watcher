@@ -19,4 +19,9 @@ class MethodChannelDispatchSourceWatcher extends DispatchSourceWatcherPlatform {
   Future<void> watch(String path) {
     return methodChannel.invokeMethod('watch', path);
   }
+
+  @override
+  Future<void> stopWatching(String path) {
+    return methodChannel.invokeMethod('stopWatching', path);
+  }
 }

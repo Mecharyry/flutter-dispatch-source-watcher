@@ -12,9 +12,10 @@ struct FSWatcherEvent {
     let event: UInt
 }
 
-enum FSWatcherError: Error {
+enum DSWatcherError: Error {
     case MissingDispatchSource(path: String)
     case PlatformNotSupported(message: String)
+    case FileOpenError(message: String)
 }
 
 public class SwiftDispatchSourceWatcherPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
@@ -35,11 +36,18 @@ public class SwiftDispatchSourceWatcherPlugin: NSObject, FlutterPlugin, FlutterS
             switch call.method {
             case "watch":
                 if let path = call.arguments as? String {
-                    debugPrint("watching \(path)")
                     try watch(path:path)
                 }
                 else {
                     debugPrint("watch called with argument of unknown type [\(String(describing: call.arguments))]")
+                }
+                break
+            case "stopWatching":
+                if let path = call.arguments as? String {
+                    stopWatching(path:path)
+                }
+                else {
+                    debugPrint("stopWatching called with argument of unknown type [\(String(describing: call.arguments))]")
                 }
                 break
             default:
@@ -47,7 +55,7 @@ public class SwiftDispatchSourceWatcherPlugin: NSObject, FlutterPlugin, FlutterS
             }
         }
         catch {
-            result(error)
+            result(FlutterError(code:"\(type(of:error))", message:"\(error)", details:"" ))
             return
         }
       result(nil)
@@ -59,6 +67,9 @@ public class SwiftDispatchSourceWatcherPlugin: NSObject, FlutterPlugin, FlutterS
             let url = URL(fileURLWithPath: path);
             var directoryReference = DirectoryReference()
             directoryReference.fileDescriptor = open((url as NSURL).fileSystemRepresentation, O_EVTONLY)
+            if (directoryReference.fileDescriptor == -1) {
+                throw DSWatcherError.FileOpenError(message:"Could not open \(url)")
+            }
             directoryReference.dispatchSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: directoryReference.fileDescriptor, eventMask: DispatchSource.FileSystemEvent(arrayLiteral: [.write, .delete,  .rename, .revoke]), queue: watcherQueue) as? DispatchSource
 
             if let dispatchSource = directoryReference.dispatchSource {
@@ -93,11 +104,11 @@ public class SwiftDispatchSourceWatcherPlugin: NSObject, FlutterPlugin, FlutterS
                 if #available(iOS 10.0, *) {
                     dispatchSource.activate()
                 } else {
-                    throw(FSWatcherError.PlatformNotSupported(message: "iOS 10.0 or greater is required"))
+                    throw(DSWatcherError.PlatformNotSupported(message: "iOS 10.0 or greater is required"))
                 }
             }
             else {
-                throw FSWatcherError.MissingDispatchSource(path: path)
+                throw DSWatcherError.MissingDispatchSource(path: path)
             }
         }
     }

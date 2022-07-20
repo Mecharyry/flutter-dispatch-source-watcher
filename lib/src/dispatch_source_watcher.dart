@@ -1,65 +1,28 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'dispatch_source_callback_aggregator.dart';
 import 'dispatch_source_watcher_platform_interface.dart';
+import 'dispatch_source_event.dart';
 
-
+// Watches a file system object for filesystem changes and provides a stream for these events
 class DispatchSourceWatcher {
-  StreamSubscription? _platformWatcherSubscription;
-  final Map<String, List<DispatchSourceWatcherCallback>> watchCallbacks = {};
+  final _streamController = StreamController<DispatchSourceEvent>.broadcast();
+  final String path;
 
-  // Initialize the dispatch source watcher
-  void initialize() {
-    if (_platformWatcherSubscription != null) return;
-    _platformWatcherSubscription = DispatchSourceWatcherPlatform.instance.eventsStream().listen(_onWatchEvent);
+  // Stream of [DispatchSourceEvent]s. This stream is a broadcast stream. Note that a single event may encapsulate several filesystem-level changes
+  Stream<DispatchSourceEvent> get stream => _streamController.stream;
+
+  DispatchSourceWatcher({required this.path}) {
+    final aggregator = DispatchSourceCallbackAggregator.instance; 
+    aggregator.ensureInitialized();
+    _streamController.onListen = () {
+      aggregator.addCallback(path, _onWatchEvent);
+    };
+    _streamController.onCancel = () {
+      aggregator.removeCallback(path, _onWatchEvent);
+    };
   }
 
-  // Dispose of the dispatch source watcher
-  void dispose() {
-    _platformWatcherSubscription?.cancel();
-    _platformWatcherSubscription = null;
+  void _onWatchEvent(DispatchSourceEvent event) {
+    _streamController.add(event);
   }
-
-  void _onWatchEvent(event) {
-    final path = event["path"];
-    if (path == null) {
-      print("ERROR: ignoring watch event with empty path: $event");
-      return;
-    }
-    final callbacks = watchCallbacks[path];
-    if ((callbacks == null) || (callbacks.isEmpty)) {
-      print("WARNING: received watch event for path [$path] but  it has no watchers");
-      return;
-    }
-    final eventSourcedNames = event["eventNames"];
-    final eventNames = eventSourcedNames is List ? eventSourcedNames.cast<String>() : <String>[];
-    final watcherEvent = DispatchSourceEvent(path:path, eventMask:event["event"] ?? -1, eventNames: eventNames);
-    for (final callback in callbacks) {
-      callback(watcherEvent);
-    }
-  }
-
-  // Registers the given callback for file system changes on the directory hierarchy at the given path
-  Future<void> watch(String path, DispatchSourceWatcherCallback callback) {
-    final callbacks = watchCallbacks[path];
-    if (callbacks == null) {
-      watchCallbacks[path] = [callback];
-    }
-    else {
-      callbacks.add(callback);
-    }
-    return DispatchSourceWatcherPlatform.instance.watch(path);
-  }
-
-  // Unregisteres the given callback for file system changes at the given path
-  void cancelWatchCallback(String path, DispatchSourceWatcherCallback callback) {
-    final callbacks = watchCallbacks[path];
-    if (callbacks == null) return;
-    callbacks.remove(callback);
-  }
-
-  @visibleForTesting
-  List<DispatchSourceWatcherCallback> callbacksForPath(String path) {
-    return watchCallbacks[path] ?? [];
-  }
-
 }

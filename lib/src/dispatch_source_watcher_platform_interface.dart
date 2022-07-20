@@ -1,22 +1,9 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'dispatch_source_watcher_method_channel.dart';
-
+import 'dispatch_source_event.dart';
 
 typedef DispatchSourceWatcherCallback = void Function(DispatchSourceEvent);
-
-class DispatchSourceEvent {
-  final String path;
-  final int eventMask;
-  final List<String> eventNames;
-  DispatchSourceEvent({required this.path, required this.eventMask, required this.eventNames});
-
-  Map<String, Object> asDictionary() => {
-    "path": path,
-    "event": eventMask,
-    "eventNames": eventNames
-  };
-}
 
 abstract class DispatchSourceWatcherPlatform extends PlatformInterface {
   DispatchSourceWatcherPlatform() : super(token: _token);
@@ -36,5 +23,9 @@ abstract class DispatchSourceWatcherPlatform extends PlatformInterface {
 
   Future<void> watch(String path) {
     throw UnimplementedError('watch(String path) has not been implemented.');
+  }
+
+  Future<void> stopWatching(String path) {
+    throw UnimplementedError('stopWatching(String path) has not been implemented.');
   }
 }
