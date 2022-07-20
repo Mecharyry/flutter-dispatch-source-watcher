@@ -17,7 +17,7 @@ final watcher = DispatchSourceWatcher(path: '/tmp/dir1');
 The watcher provides a (broadcast) stream that can be listened to:
 
 ```dart
-final subscription = watcher.stream.watch((event) {
+final subscription = watcher.stream.listen((event) {
   print("receive event on path ${event.path}");
 });
 ```

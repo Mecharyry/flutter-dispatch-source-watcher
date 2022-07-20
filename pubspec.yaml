@@ -1,6 +1,6 @@
 name: dispatch_source_watcher
 description: Listen to DispatchSource file events on iOS
-version: 0.2.0
+version: 0.2.1
 homepage: https://github.com/swiftllama/flutter-dispatch-source-watcher
 
 environment:
